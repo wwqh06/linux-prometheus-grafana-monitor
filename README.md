@@ -1,6 +1,7 @@
-# 基于 Prometheus + Grafana 的 Linux 主机监控与故障告警实践
+[Uploading readme.md…]()
+# 基于 Prometheus + Grafana 的 Linux 主机监控与故障排查实践
 
-本项目基于 VMware 虚拟化与 Docker Compose 容器编排技术，快速搭建了一套面向企业级 Linux 服务器的轻量级主机性能监控系统。项目实现了主机底层指标采集、时序存储与动态可视化监控，并通过注入 CPU 突发负载完成了系统动态感知能力的闭环验证。
+本项目基于 VMware 虚拟化与 Docker Compose 容器编排技术，快速搭建了一套面向企业级 Linux 服务器的轻量级主机性能监控系统。项目实现了主机底层指标采集、时序存储与动态可视化监控，并通过注入 CPU 突发负载完成了系统动态感知与故障排查的闭环验证。
 
 ---
 
@@ -11,6 +12,7 @@
 - [快速部署与运行](#快速部署与运行)
 - [效果验证与成果展示](#效果验证与成果展示)
 - [故障排查与运维实战记录](#故障排查与运维实战记录)
+- [安全说明与生产建议](#安全说明与生产建议)
 - [项目收益与总结](#项目收益与总结)
 
 ---
@@ -58,23 +60,23 @@
 
 ## 技术栈
 
-| 领域 | 选用技术 / 工具 | 说明 |
-| :--- | :--- | :--- |
-| **基础环境** | CentOS Stream 9 (Kernel 5.14) | 运行于 VMware Workstation (NAT 模式) |
-| **容器运行时** | Docker CE 27.x | 容器引擎与隔离环境 |
-| **服务编排** | Docker Compose v2.x | 基础设施即代码 (IaC) 一键拉起多容器栈 |
-| **监控套件** | Prometheus + Node Exporter | 开源时序监控指标收集生态 |
-| **可视化展示** | Grafana 11.x | 仪表盘渲染引擎 (模板 ID: 1860) |
+| 领域 | 选用技术 / 工具 | 版本 | 说明 |
+| :--- | :--- | :--- | :--- |
+| **基础环境** | CentOS Stream 9 | Kernel 5.14 | 运行于 VMware Workstation (NAT 模式) |
+| **容器运行时** | Docker CE | 27.x | 容器引擎与隔离环境 |
+| **服务编排** | Docker Compose | v2.x | 基础设施即代码 (IaC) 一键拉起多容器栈 |
+| **监控套件** | Prometheus + Node Exporter | v2.54.1 / v1.8.2 | 开源时序监控指标收集生态（固定版本保证可复现） |
+| **可视化展示** | Grafana | 11.1.0 | 仪表盘渲染引擎 (模板 ID: 1860) |
 
 ---
 
 ## 核心配置文件
 
-### 1. `prometheus.yml`
+### 1. `prometheus.yaml`
 ```yaml
 global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
+  scrape_interval: 15s      # 全局采集间隔：每15秒抓取一次指标
+  evaluation_interval: 15s  # 规则评估间隔
 
 scrape_configs:
   - job_name: "prometheus"
@@ -86,21 +88,21 @@ scrape_configs:
       - targets: ["node_exporter:9100"]
 ```
 
-### 2. `docker-compose.yml`
+### 2. `docker-compose.yaml`
 ```yaml
 services:
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.54.1
     container_name: prometheus
     restart: always
     ports:
       - "9090:9090"
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:z
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yml:z
       - prometheus_data:/prometheus
 
   node_exporter:
-    image: prom/node-exporter:latest
+    image: prom/node-exporter:v1.8.2
     container_name: node_exporter
     restart: always
     ports:
@@ -115,7 +117,7 @@ services:
       - '--path.rootfs=/rootfs'
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:11.1.0
     container_name: grafana
     restart: always
     ports:
@@ -136,7 +138,7 @@ volumes:
 ```bash
 mkdir -p /opt/monitor
 cd /opt/monitor
-# 将上述 prometheus.yml 与 docker-compose.yml 保存至该目录下
+# 将上述 prometheus.yaml 与 docker-compose.yaml 保存至该目录下
 ```
 
 ### 2. 启动监控集群
@@ -144,14 +146,14 @@ cd /opt/monitor
 docker compose up -d
 ```
 
-### 3. 放行宿主机防火墙端口
+### 3. 放行宿主机防火墙端口（本地内网环境）
 ```bash
 firewall-cmd --zone=public --add-port={9090,3000,9100}/tcp --permanent && firewall-cmd --reload
 ```
 
 ### 4. 访问服务
 - **Prometheus Targets 状态**：`http://<虚拟机IP>:9090/targets`
-- **Grafana 仪表盘**：`http://<虚拟机IP>:3000` (初始账号: `admin` / 密码: `admin`)
+- **Grafana 仪表盘**：`http://<虚拟机IP>:3000` (初始账号: `admin` / 密码: `admin`，首次登录请及时修改)
   - 数据源 URL: `http://prometheus:9090`
   - 导入仪表盘模板 ID: `1860` (Node Exporter Full)
 
@@ -191,6 +193,14 @@ Prometheus 成功与 Node Exporter 握手，所有抓取目标均处于健康的
 4. **单核 CPU 满载对服务响应的影响**
    - **问题现象**：压测期间 Grafana 右上角出现持续旋转的 `Cancel` 状态。
    - **原因分析**：测试机仅分配了 1 核 vCPU，压测进程占满全部计算资源，导致 Prometheus 查询 API 响应延迟。执行 `pkill -f cpu_test.sh` 释放资源后系统立即恢复秒级响应。
+
+---
+
+## 安全说明与生产建议
+
+1. **内网测试隔离**：本文档涉及的开放端口（`9090`、`9100`、`3000`）仅限在 VMware 本地 NAT 或可信内网环境测试使用，**严禁在无鉴权保护的情况下直接暴露在公网**。
+2. **凭据安全加固**：Grafana 初始账号与密码为 `admin / admin`，生产或长期运行环境中必须在首次登录后强制重设强口令。
+3. **反向代理与访问控制**：在生产环境中，建议通过 Nginx 配置 HTTPS 证书与基本认证（Basic Auth），或使用企业统一身份认证（OAuth2 / LDAP）收敛 Prometheus 与 Grafana 访问入口。
 
 ---
 
