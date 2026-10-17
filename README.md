@@ -160,17 +160,21 @@ firewall-cmd --zone=public --add-port={9090,3000,9100}/tcp --permanent && firewa
 
 ## 效果验证与成果展示
 
+## 效果验证与成果展示
+
 ### 1. Prometheus 采集链路验证 (Targets UP)
 Prometheus 成功与 Node Exporter 握手，所有抓取目标均处于健康的 `UP` 状态：
-[test2/img/01-prometheus-targets-up.png]
+
+![](test2/img/01-prometheus-targets-up.png)
 
 ### 2. Grafana 主机性能监控大盘 (Node Exporter Full)
 全方位实时监测主机 CPU 核心数、可用物理内存、磁盘利用率及网卡收发吞吐量：
-[test2/img/02-grafana-linux-dashboard.png]
 
+![](test2/img/02-grafana-linux-dashboard.png)
 ### 3. CPU 压力模拟与动态恢复验证
 通过启动多重循环脚本模拟主机突发高负载场景，监控大盘精准捕获 CPU 从 5% 飙升至 100% 的陡峭曲线，并在终止压测后平稳复原，验证了监控系统秒级感知的有效性与真实性：
-[test2/img/03-cpu-stress-test-metric.png]
+
+![](test2/img/03-cpu-stress-test-metric.png)
 
 
 ---
