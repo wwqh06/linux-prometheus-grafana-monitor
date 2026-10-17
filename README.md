@@ -1,6 +1,6 @@
 # 基于 Prometheus + Grafana 的 Linux 主机监控与故障排查实践
 
-本项目基于 VMware 虚拟化与 Docker Compose 容器编排技术，快速搭建了一套面向企业级 Linux 服务器的轻量级主机性能监控系统。项目实现了主机底层指标采集、时序存储与动态可视化监控，并通过注入 CPU 突发负载完成了系统动态感知与故障排查的闭环验证。
+本项目基于 VMware 虚拟化与 Docker Compose，搭建了一套 Linux 主机监控实验环境。通过 Node Exporter 采集系统指标，利用 Prometheus 存储和查询时序数据，并通过 Grafana 展示主机性能变化。通过 CPU 压力测试，验证了监控链路对负载变化的观测能力，并记录了部署过程中的网络、权限及资源瓶颈排查过程。
 
 ---
 
@@ -162,14 +162,15 @@ firewall-cmd --zone=public --add-port={9090,3000,9100}/tcp --permanent && firewa
 
 ### 1. Prometheus 采集链路验证 (Targets UP)
 Prometheus 成功与 Node Exporter 握手，所有抓取目标均处于健康的 `UP` 状态：
-
+[test2/img/01-prometheus-targets-up.png]
 
 ### 2. Grafana 主机性能监控大盘 (Node Exporter Full)
 全方位实时监测主机 CPU 核心数、可用物理内存、磁盘利用率及网卡收发吞吐量：
-
+[test2/img/02-grafana-linux-dashboard.png]
 
 ### 3. CPU 压力模拟与动态恢复验证
 通过启动多重循环脚本模拟主机突发高负载场景，监控大盘精准捕获 CPU 从 5% 飙升至 100% 的陡峭曲线，并在终止压测后平稳复原，验证了监控系统秒级感知的有效性与真实性：
+[test2/img/03-cpu-stress-test-metric.png]
 
 
 ---
