@@ -1,4 +1,3 @@
-[Uploading readme.md…]()
 # 基于 Prometheus + Grafana 的 Linux 主机监控与故障排查实践
 
 本项目基于 VMware 虚拟化与 Docker Compose 容器编排技术，快速搭建了一套面向企业级 Linux 服务器的轻量级主机性能监控系统。项目实现了主机底层指标采集、时序存储与动态可视化监控，并通过注入 CPU 突发负载完成了系统动态感知与故障排查的闭环验证。
