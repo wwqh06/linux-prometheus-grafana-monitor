@@ -73,8 +73,8 @@
 ### 1. `prometheus.yml`
 ```yaml
 global:
-  scrape_interval: 15s      # 全局采集间隔：每15秒抓取一次指标
-  evaluation_interval: 15s  # 规则评估间隔
+  scrape_interval: 15s
+  evaluation_interval: 15s
 
 scrape_configs:
   - job_name: "prometheus"
